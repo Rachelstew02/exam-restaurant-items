@@ -26,17 +26,22 @@ class MenuItem(Model):
         categories_list = ["APPETIZER", "SIDE", "ENTREE", "DESSERT"]
 
         #ensure category is one of the 4 predetermined categories
-        if query['category'] not in categories_list:
+        category = query.get('category')
+        if category:
+            category = category.upper()
+            query['category'] = category
+
+        if category not in categories_list:
             print("Invalid category! Category must be either APPETIZER, SIDE, ENTREE, or DESSERT")
             return
         new_item = super().create(**query)
-        print(f"Item '{query['name']} added successfully.")
+        print(f"Item '{query['name']}' added successfully.",'\n')
         return new_item
             
     
     #create the get info method
     def get_info(self):
-        print(f"ID: {self.menu_item_id} | Name: {self.name} | Category: {self.category} | Price: ${self.price}")
+        return(f"ID: {self.menu_item_id} | Name: {self.name} | Category: {self.category} | Price: ${self.price}")
     
 #connect database
 db.connect()
@@ -52,53 +57,86 @@ while True:
     
     menu_selection = input("Choose an option (1-4): ")
 
-    while True:
-        #Menu option 1: Adding a menu item
-        if menu_selection =="1":
-            item_name_input = input("Enter the item name: ")
-            category_add_input = input("Enter the category ('APPETIZER', 'SIDE', 'ENTREE', 'DESSERT'): ")
-            price_add_input = input("Enter the price: ")
-            price_add_input = float(price_add_input)
-            category_add_input = category_add_input.upper()
-            
-            #creating a new object
-            MenuItem.create(name = item_name_input, category = category_add_input, price = price_add_input)
-            break
+    
+    #Menu option 1: Adding a menu item
+    if menu_selection =="1":
+        item_name_input = input("Enter the item name: ")
+        category_add_input = input("Enter the category ('APPETIZER', 'SIDE', 'ENTREE', 'DESSERT'): ")
+        price_add_input = input("Enter the price: ")
+        price_add_input = float(price_add_input)
+        
+        #creating a new object
+        MenuItem.create(name = item_name_input, category = category_add_input, price = price_add_input)
+        
 
     #Menu option 2: Viewing all menu items
-    if menu_selection == "2":
+    elif menu_selection == "2":
         menu_list= MenuItem.select()
         for item in menu_list:
             item.get_info()
+            
 
     #Menu option 3: Viewing the most expensive item
-    if menu_selection == "3":
-        #create lists of all categories ordered by price descending
-        Appetizer_list= MenuItem.select().where(category ='APPETIZER').order_by(MenuItem.price.desc())
-        Entree_list= MenuItem.select().where(category ='ENTREE').order_by(MenuItem.price.desc())
-        Side_list= MenuItem.select().where(category ='SIDE').order_by(MenuItem.price.desc())
-        Dessert_list= MenuItem.select().where(category ='DESSERT').order_by(MenuItem.price.desc())
+    elif menu_selection == "3":
+        #Appetizer: get list of appetizers
+        Appetizer_list= MenuItem.select().where(MenuItem.category =='APPETIZER').order_by(MenuItem.price.desc())
+        #create empty prices list
+        app_prices = []
+        #add the price of each appetizer to the prices list
+        for app in Appetizer_list:
+            price = app.price
+            app_prices.append(price)
+
+        #repeat with entree
+        Entree_list= MenuItem.select().where(MenuItem.category =='ENTREE').order_by(MenuItem.price.desc())
+        entree_prices = []
+        for entree in Entree_list:
+           price = entree.price
+           entree_prices.append(price)
+
+        #repeat with side
+        Side_list= MenuItem.select().where(MenuItem.category =='SIDE').order_by(MenuItem.price.desc())
+        side_prices = []
+        for side in Side_list:
+            price = side.price
+            side_prices.append(price)
+
+        #repeat with dessert
+        Dessert_list= MenuItem.select().where(MenuItem.category =='DESSERT').order_by(MenuItem.price.desc())
+        dessert_prices = []
+        for dessert in Dessert_list:
+            price = dessert.price
+            dessert_prices.append(price)
 
         #get most expensive object (first item on the list)
-        expensive_app = Appetizer_list[0]
-        expensive_entree = Entree_list[0]
-        expensive_side = Side_list[0]
-        expensive_dessert = Dessert_list[0]
+        expensive_app = app_prices[0]
+        expensive_entree = entree_prices[0]
+        expensive_side = side_prices[0]
+        expensive_dessert = dessert_prices[0]
+
+        #get the object associated with that most expensive price
+        app_obj = MenuItem.get(price = expensive_app)
+        entree_obj = MenuItem.get(price = expensive_entree)
+        side_obj = MenuItem.get(price = expensive_side)
+        dessert_obj = MenuItem.get(price = expensive_dessert)
 
         #print messages and get infos for each category's most expensive item
-        print(f"Most expensive {expensive_app.category}:", '\n',
-                "{expensive_app.get_info}")
-        print(f"Most expensive {expensive_side.category}:", '\n',
-                "{expensive_side.get_info}")
-        print(f"Most expensive {expensive_entree.category}:", '\n',
-                "{expensive_entree.get_info}")
-        print(f"Most expensive {expensive_dessert.category}:", '\n',
-                "{expensive_dessert.get_info}")
+        print("Most expensive APPETIZER:")
+        print(f"{app_obj.get_info()}")
+        print("Most expensive SIDE:")
+        print(f"{side_obj.get_info()}")
+        print("Most expensive ENTREE:")
+        print(f"{entree_obj.get_info()}")
+        print("Most expensive DESSERT:")
+        print(f"{dessert_obj.get_info()}")
+        
+        
         
     #Menu option 4: exit database
-    if menu_selection == "4":
+    elif menu_selection == "4":
         print('Goodbye')
         break
+
     else:
         #message for invalid option selected
         print("Invalid choice. Please try again.")
